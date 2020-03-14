@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+  "name": "rockstar",
+  "version": "0.2",
+  "description": "Enhance Okta with a bunch of great features, like exporting to a CSV.",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.okta.com/*",
+        "https://*.okta-emea.com/*",
+        "https://*.oktapreview.com/*"
+      ],
+      "js": ["jquery-1.12.4.min.js", "rockstar.js"],
+      "css": ["rockstar.css"]
+    }
+  ]
+}
