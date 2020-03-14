@@ -17,7 +17,7 @@
 4. Click to enable Developer Mode. (It will prompt you about this every time you restart Chrome.) 
 5. Drag the "rockstar" folder to the Chrome Extensions tab.
 
-see also https://gabrielsroka.github.io/rockstar
+see also https://gabrielsroka.github.io/rockstar or https://chrome.google.com/webstore/detail/chjepkekmhealpjipcggnfepkkfeimbd
 
 # Greasemonkey script
 https://gabrielsroka.github.io/rockstar/rockstar.user.js
