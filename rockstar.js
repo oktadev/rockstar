@@ -53,7 +53,7 @@
     }
 
     function quickUpdate() {
-        $(`<a href='https://gabrielsroka.github.io/rockstar/' target='_blank' rel='noopener'>Quick Update and Good News! (Feb 21, 2020)</a><br><br>`).appendTo(mainPopup);
+        $(`<a href='https://www.youtube.com/watch?v=2fkT6Trhizs' target='_blank' rel='noopener'>New Omnibox Integration (youtube)</a><br><br>`).appendTo(mainPopup);
     }
 
     // Admin functions
@@ -68,8 +68,8 @@
                     var creds = user.credentials.provider;
                     var logo = creds.type == "LDAP" ? "ldap_sun_one" : creds.type.toLowerCase();
                     return `<tr><td><span class='icon icon-24 group-logos-24 logo-${logo}'></span> ${creds.name == "OKTA" ? "Okta" : creds.name}` +
-                        `<td><a href="/admin/user/profile/view/${user.id}#tab-account">${user.profile.firstName} ${user.profile.lastName}</a>` +
-                        `<td>${user.profile.login}<td>${user.profile.email}`;
+                        `<td><a href="/admin/user/profile/view/${e(user.id)}#tab-account">${e(user.profile.firstName)} ${e(user.profile.lastName)}</a>` +
+                        `<td>${e(user.profile.login)}<td>${e(user.profile.email)}`;
                 },
                 headers: "<tr><th>Source<th>Name<th>Username<th>Primary Email",
                 placeholder: "Search Active by First/Last/Email...",
@@ -83,8 +83,8 @@
         getJSON(`/api/v1/users/${userId}`).then(aUser => {
             user = aUser;
             var ad = user.credentials.provider.type == "ACTIVE_DIRECTORY";
-            $(".subheader").html(`${user.profile.login}, email: ${user.profile.email}${ad ? ", " : ""}`);
-            document.title += ` - ${user.profile.firstName} ${user.profile.lastName}`;
+            $(".subheader").html(`${e(user.profile.login)}, email: ${e(user.profile.email)}${ad ? ", " : ""}`);
+            document.title += ` - ${e(user.profile.firstName)} ${e(user.profile.lastName)}`;
             if (ad) {
                 function showADs() {
                     getJSON(`/api/v1/apps?filter=user.id+eq+"${userId}"&expand=user/${userId}&limit=200&q=active_directory`).then(appUsers => {
@@ -92,33 +92,33 @@
                         var rows = "<tr><th>Domain<th>Username<th>Email";
                         appUsers.forEach(appUser => {
                             var user = appUser._embedded.user;
-                            rows += `<tr><td>${appUser.label}<td>${user.credentials.userName}<td>${user.profile.email}`;
+                            rows += `<tr><td>${e(appUser.label)}<td>${e(user.credentials.userName)}<td>${e(user.profile.email)}`;
                         });
                         adPopup.html(`<table class='data-list-table' style='border: 1px solid #ddd;'>${rows}</table>`);
                     });
                 }
-                createA("AD: " + user.credentials.provider.name, ".subheader", showADs);
+                createA("AD: " + e(user.credentials.provider.name), ".subheader", showADs);
                 createPrefixA("<li class=option>", "<span class='icon directory-16'></span>Show AD", ".okta-dropdown-list", showADs);
             }
         });
         function showUser() {
-            function toString(o, i) {
-                var strings = [], v, i = i || "";
-                for (var p in o) {
-                    if (p != "credentials" && p != "_links") {
-                        if (o[p] === null) v = "null";
-                        else if (typeof o[p] == "string") v = o[p].replace(/(["\\])/g, "\\$1"); // Escape " and \
-                        else if (o[p] instanceof Array) v = "[" + o[p].toString() + "]";
-                        else if (typeof o[p] == "object") v = "{\n" + toString(o[p], i + "\t") + i + "}";
-                        else v = o[p];
-                        strings.push(i + p + ": " + v);
-                    }
+            function toString(o, i = '') {
+                const strings = [];
+                for (const p in o) {
+                    if (p == "_links") continue;
+                    var v = o[p];
+                    if (v === null) v = "null";
+                    else if (typeof v == "string") v = '"' + v.replace(/(["\\])/g, "\\$1") + '"'; // Escape " and \
+                    else if (Array.isArray(v)) v = v.length == 0 ? '[]' : "[\n" + toString(v, i + "    ") + i + "]";
+                    else if (typeof v == "object") v = $.isEmptyObject(v) ? '{}' : "{\n" + toString(v, i + "    ") + i + "}";
+                    if (!Array.isArray(o)) v = p + ": " + v;
+                    strings.push(i + v);
                 }
                 return strings.join("\n") + "\n";
             }
-            var userPopup = createPopup("User");
-            var logo = user.credentials.provider.type == "LDAP" ? "ldap_sun_one" : user.credentials.provider.type.toLowerCase();
-            userPopup.html(`<span class='icon icon-24 group-logos-24 logo-${logo}'></span><pre>${toString(user)}</pre>`);
+            const userPopup = createPopup("User");
+            const logo = user.credentials.provider.type == "LDAP" ? "ldap_sun_one" : user.credentials.provider.type.toLowerCase();
+            userPopup.html(`<span class='icon icon-24 group-logos-24 logo-${logo}'></span><br><br><pre>${e(toString(user))}</pre>`);
         }
         createDivA("Show User", mainPopup, showUser);
         createPrefixA("<li class=option>", "<span class='icon person-16-gray'></span>Show User", ".okta-dropdown-list", showUser);
@@ -129,10 +129,11 @@
                     {provider: 'OKTA', type: 'push', icon: "okta-otp", name: "Okta Verify with Push", sort: 0},
                     {provider: 'OKTA', type: "token:software:totp", icon: "okta-otp", name: "Okta Verify (OTP)", sort: 1},
                     {provider: 'GOOGLE', type: 'token:software:totp', icon: "otp", name: "Google Authenticator", sort: 2},
-                    {provider: 'OKTA', type: 'sms', icon: "sms", name: "SMS Authentication", sort: 3},
-                    {provider: 'OKTA', type: 'call', icon: "call", name: "Voice Call Authentication", sort: 4},
-                    {provider: 'OKTA', type: 'email', icon: "email", name: "Email Authentication", sort: 5},
-                    {provider: 'OKTA', type: 'question', icon: "question", name: "Security Question", sort: 6}
+                    {provider: 'CUSTOM', type: 'token:hotp', icon: 'hotp', name: factor.vendorName, sort: 3},
+                    {provider: 'OKTA', type: 'sms', icon: "sms", name: "SMS Authentication", sort: 4},
+                    {provider: 'OKTA', type: 'call', icon: "call", name: "Voice Call Authentication", sort: 5},
+                    {provider: 'OKTA', type: 'email', icon: "email", name: "Email Authentication", sort: 6},
+                    {provider: 'OKTA', type: 'question', icon: "question", name: "Security Question", sort: 7}
                 ];
                 const type = factor.factorType;
                 const supported = supportedFactors.find(f => f.provider == factor.provider && f.type == type);
@@ -141,7 +142,7 @@
                 const radio = `<label><input type=radio name=factor value='${factor.id}'><span class="mfa-${icon}-30 valign-middle margin-l-10 margin-r-5"></span>` +
                     `${name}</label><br>`;
                 if (type == 'question') {
-                    var html = '<br>' + factor.profile.questionText + '<br>';
+                    var html = '<br>' + e(factor.profile.questionText) + '<br>';
                     var inputType = 'password';
                     var field = 'answer';
                 } else {
@@ -180,11 +181,11 @@
                                 clearInterval(intervalID);
                             }
                         }, intervalMs);
-                    }).fail(jqXHR => verifyPopup.html(jqXHR.responseJSON.errorSummary));
+                    }).fail(jqXHR => verifyPopup.html(e(jqXHR.responseJSON.errorSummary)));
                 } else {
                     if (factor.type == "sms" || factor.type == "call" || factor.type == "email") {
                         postJSON({url})
-                        .fail(jqXHR => verifyPopup.html(jqXHR.responseJSON.errorSummary));
+                        .fail(jqXHR => verifyPopup.html(e(jqXHR.responseJSON.errorSummary)));
                     }
                     verifyPopup.html("");
                     const verifyForm = verifyPopup[0].appendChild(document.createElement("form")); // Cuz "<form>" didn't work.
@@ -196,7 +197,7 @@
                         data[factor.field] = answer.value;
                         postJSON({url, data})
                         .then(response => verifyPopup.html(response.factorResult))
-                        .fail(jqXHR => error.innerHTML = '<br>' + jqXHR.responseJSON.errorSummary);
+                        .fail(jqXHR => error.innerHTML = '<br>' + e(jqXHR.responseJSON.errorSummary));
                         return false; // Cancel form.
                     };
                 }
@@ -211,6 +212,7 @@
                 {type: "APP_ADMIN", label: "Application"},
                 {type: "USER_ADMIN", label: "Group"}, // not "User"
                 {type: "HELP_DESK_ADMIN", label: "Help Desk"},
+                {type: "GROUP_MEMBERSHIP_ADMIN", label: "Group Membership"},
                 {type: "READ_ONLY_ADMIN", label: "Read Only"},
                 {type: "MOBILE_ADMIN", label: "Mobile"},
                 {type: "API_ACCESS_MANAGEMENT_ADMIN", label: "API Access Management"},
@@ -247,8 +249,29 @@
                             });
                         });
                     }
-                }).fail(jqXHR => rolesPopup.html(jqXHR.responseJSON.errorSummary + "<br><br>"));
+                }).fail(jqXHR => rolesPopup.html(e(jqXHR.responseJSON.errorSummary) + "<br><br>"));
             }
+        });
+
+        createDivA("Set Password", mainPopup, function () {
+            const passwordPopup = createPopup("Set Password");
+            const passwordForm = passwordPopup[0].appendChild(document.createElement("form")); // Cuz "<form>" didn't work.
+            passwordForm.innerHTML = "<input id=newPassword type=password><br><button class='link-button'>Set</button>";
+            newPassword.focus(); // Cuz "autofocus" didn't work.
+            passwordForm.onsubmit = function (event) {
+                const url = `/api/v1/users/${userId}`; // TODO: `/api/v1/users/${userId}/lifecycle/expire_password?tempPassword=false`
+                const data =  {
+                    credentials: {
+                        password: {
+                            value: newPassword.value
+                        }
+                    }
+                };
+                postJSON({url, data})
+                .then(() => passwordPopup.html("Password set."))
+                .fail(jqXHR => passwordPopup.html(e(jqXHR.responseJSON.errorCauses[0].errorSummary)));
+                event.preventDefault();
+            };
         });
     }
 
@@ -261,7 +284,7 @@
                 getJSON("/api/v1/groups").then(groups => {
                     groups = groups
                         .filter(group => group.profile.name.match(new RegExp(form.find("input.name").val(), "i")))
-                        .map(group => group.profile.name.link("/admin/group/" + group.id));
+                        .map(group => e(group.profile.name).link("/admin/group/" + group.id));
                     if (groups.length > 0) {
                         var results = groups.join("<br>");
                     } else {
@@ -283,8 +306,8 @@
                 template(group) {
                     const logo = group._links.logo[0].href.split('/')[7].split('-')[0];
                     return `<tr><td class=column-width><span class='icon icon-24 group-logos-24 logo-${logo}'></span>` +
-                        `<td><a href="/admin/group/${group.id}">${group.profile.name}</a>` +
-                        `<td>${group.profile.description || "No description"}` + 
+                        `<td><a href="/admin/group/${group.id}">${e(group.profile.name)}</a>` +
+                        `<td>${e(group.profile.description || "No description")}` + 
                         `<td>${group._embedded.stats.usersCount}` +
                         `<td>${group._embedded.stats.appsCount}` +
                         `<td>${group._embedded.stats.groupPushMappingsCount}`;
@@ -303,9 +326,9 @@
             adminsPopup.html("Exporting ...");
             const header = "First name,Last name,Email,Username,UserId,Title,Manager,Department,Administrator Role";
             const lines = [];
-            getJSON("/api/internal/administrators?expand=user,apps,instances,appAndInstances,userAdminGroups,helpDeskAdminGroups")
+            getJSON("/api/internal/administrators?expand=user,apps,instances,appAndInstances,userAdminGroups,helpDeskAdminGroups,groupMembershipAdminGroups")
             .then(getAdmins)
-            .fail(jqXHR => adminsPopup.html(jqXHR.responseJSON.errorSummary + "<br><br>"));
+            .fail(jqXHR => adminsPopup.html(e(jqXHR.responseJSON.errorSummary) + "<br><br>"));
 
             function getAdmins(admins, status, jqXHR) {
                 admins.forEach(admin => {
@@ -352,6 +375,7 @@
                     if (admin.appAdmin || admin.orgAdministratorGroup.appAdmin) showRole("Application Administrator: " + appAndInstanceNames());
                     if (admin.userAdmin || admin.orgAdministratorGroup.userAdmin) showRole("Group Administrator: " + groupNames("userAdminGroups")); // "Group Admin", not "User Admin"
                     if (admin.helpDeskAdmin || admin.orgAdministratorGroup.helpDeskAdmin) showRole("Help Desk Administrator: " + groupNames("helpDeskAdminGroups"));
+                    if (admin.groupMembershipAdmin || admin.orgAdministratorGroup.groupMembershipAdmin) showRole("Group Membership Administrator: " + groupNames("groupMembershipAdminGroups"));
                     if (admin.readOnlyAdmin || admin.orgAdministratorGroup.readOnlyAdmin) showRole("Read Only Administrator");
                     if (admin.mobileAdmin || admin.orgAdministratorGroup.mobileAdmin) showRole("Mobile Administrator");
                     if (admin.apiAccessManagementAdmin || admin.orgAdministratorGroup.apiAccessManagementAdmin) showRole("API Access Management Administrator");
@@ -425,10 +449,10 @@
                     var idpPopup = createPopup("SAML IdPs");
                     var rows = "<tr><th>Name<th>Certificate Expires On<th>Days from today";
                     idps.forEach(idp => {
-                        var key = keys.filter(key => key.kid == idp.protocol.credentials.trust.kid)[0];
+                        var key = keys.find(key => key.kid == idp.protocol.credentials.trust.kid);
                         var days = Math.trunc((new Date(key.expiresAt) - new Date()) / 1000 / 60 / 60 / 24);
                         var style = days < 30 ? "style='background-color: red; color: white'" : "";
-                        rows += `<tr><td>${idp.name}<td>${key.expiresAt}<td ${style}}'>${days}`;
+                        rows += `<tr><td>${e(idp.name)}<td>${e(key.expiresAt)}<td ${style}}'>${days}`;
                     });
                     idpPopup.html(`<table class='data-list-table' style='border: 1px solid #ddd;'>${rows}</table>`);
                 });
@@ -448,101 +472,7 @@
         var cancel;
         if (location.pathname == "/admin/users") {
             // see also Reports > Reports, Okta Password Health: https://ORG-admin.oktapreview.com/api/v1/users?format=csv
-            createDivA("Export Users", mainPopup, function () {
-                exportPopup = createPopup("Export Users");
-                exportPopup.append("<br>Columns to export");
-                var checkboxDiv = $("<div style='overflow-y: scroll; height: 152px; width: 300px; border: 1px solid #ccc;'></div>").appendTo(exportPopup);
-                
-                function addCheckbox(value, text) {
-                    const checked = exportColumns.includes(value) ? "checked" : "";
-                    checkboxDiv.html(checkboxDiv.html() + `<label><input type=checkbox value='${value}' ${checked}>${text}</label><br>`);
-                }
-                const user = {
-                    id: "User Id", 
-                    status: "Status", 
-                    created: "Created Date", 
-                    activated: "Activated Date", 
-                    statusChanged: "Status Changed Date", 
-                    lastLogin: "Last Login Date", 
-                    lastUpdated: "Last Updated Date", 
-                    passwordChanged: "Password Changed Date", 
-                    transitioningToStatus: "Transitioning to Status", 
-                    "credentials.provider.type": "Credential Provider Type",
-                    "credentials.provider.name": "Credential Provider Name"
-                };
-                const defaultColumns = "id,status,profile.login,profile.firstName,profile.lastName,profile.email";
-                const exportColumns = (localStorage.rockstarExportUserColumns || defaultColumns).replace(/ /g, "").split(",");
-                for (const p in user) addCheckbox(p, user[p]);
-                getJSON("/api/v1/meta/schemas/user/default").then(schema => {
-                    const base = schema.definitions.base.properties;
-                    const custom = schema.definitions.custom.properties;
-                    for (const p in base) addCheckbox("profile." + p, base[p].title);
-                    for (const p in custom) addCheckbox("profile." + p, custom[p].title);
-                }).fail(() => {
-                    const profile = {
-                        login: "Username",
-                        firstName: "First name",
-                        lastName: "Last name",
-                        middleName: "Middle name",
-                        honorificPrefix: "Honorific prefix",
-                        honorificSuffix: "Honorific suffix",
-                        email: "Primary email",
-                        title: "Title",
-                        displayName: "Display name",
-                        nickName: "Nickname",
-                        profileUrl: "Profile Url",
-                        secondEmail: "Secondary email",
-                        mobilePhone: "Mobile phone",
-                        primaryPhone: "Primary phone",
-                        streetAddress: "Street address",
-                        city: "City",
-                        state: "State",
-                        zipCode: "Zip code",
-                        countryCode: "Country code",
-                        postalAddress: "Postal Address",
-                        preferredLanguage: "Preferred language",
-                        locale: "Locale",
-                        timezone: "Time zone",
-                        userType: "User type",
-                        employeeNumber: "Employee number",
-                        costCenter: "Cost center",
-                        organization: "Organization",
-                        division: "Division",
-                        department: "Department",
-                        managerId: "Manager Id",
-                        manager: "Manager"
-                    };
-                    // TODO: since user can't see /schemas, let them know they can only use base attrs.
-                    for (const p in profile) addCheckbox("profile." + p, profile[p]);
-                });
-    
-                var exportArgs = localStorage.rockstarExportUserArgs || "";
-                exportPopup.append(`<br><br>Query, Filter, or Search&nbsp;&nbsp;` +
-                    `<a href='https://developer.okta.com/docs/reference/api/users/#list-users' target='_blank' rel='noopener'>Help</a><br>` +
-                    `<input id=exportargs list=parlist value='${exportArgs}' style='width: 300px'><br><br>` + 
-                    `<div id=error>&nbsp;</div><br>` +
-                    `<datalist id=parlist><option>q=Smith<option>filter=status eq "DEPROVISIONED"<option>filter=profile.lastName eq "Smith"` +
-                    `<option>search=status eq "DEPROVISIONED"<option>search=profile.lastName eq "Smith"</datalist>`);
-                createDivA("Export", exportPopup, function () {
-                    exportArgs = $("#exportargs").val();
-                    if (exportArgs.startsWith("?")) exportArgs = exportArgs.substring(1);
-                    var exportHeaders = [];
-                    var exportColumns = [];
-                    checkboxDiv.find("input:checked").each(function () {
-                        exportHeaders.push(this.parentNode.textContent);
-                        exportColumns.push(this.value);
-                    });
-                    if (exportHeaders.length) {
-                        $("#error").html("&nbsp;");
-                        exportHeaders = exportHeaders.join(",");
-                        localStorage.rockstarExportUserColumns = exportColumns.join(",");
-                        localStorage.rockstarExportUserArgs = exportArgs;
-                        startExport("Users", `/api/v1/users?${exportArgs}`, exportHeaders, user => toCSV(...fields(user, exportColumns)));
-                    } else {
-                        $("#error").html("Select at least 1 column.");
-                    }
-                }, "class='link-button'");
-            });
+            createDivA("Export Users", mainPopup, () => exportUsers("Users", "/api/v1/users", true));
         } else if (location.pathname.match("/admin/groups")) {
             createDivA("Export Groups", mainPopup, function () {
                 startExport("Groups", "/api/v1/groups", "id,name,description,type", 
@@ -572,6 +502,17 @@
                     return toCSV(app.id, app.label, app.name, app.credentials.userNameTemplate.template, app.features.join(', '), app.signOnMode, app.status, enduserAppNotes, adminAppNotes);
                 });
             });
+            createDivA("Export App Sign On Policies", mainPopup, function () {
+                startExport("App Sign On Policies", "/api/v1/apps", "id,label,name,userNameTemplate,features,signOnMode,status,policies", async app => {
+                    var response = await fetch(`/admin/app/instance/${app.id}/app-sign-on-policy-list`);
+                    var html = await response.text();
+                    var parser = new DOMParser();
+                    var doc = parser.parseFromString(html, "text/html");
+                    const rows = [...doc.getElementsByTagName("tr")];
+                    const policies = rows.map(r => r.innerText.replace(/ +\n+/g, '')).join('\n');
+                    return toCSV(app.id, app.label, app.name, app.credentials.userNameTemplate.template, app.features.join(', '), app.signOnMode, app.status, policies);
+                });
+            });
             createDivA("Export Apps (custom)", mainPopup, function () {
                 exportPopup = createPopup("Export Apps");
                 exportPopup.append("<br>Columns to export");
@@ -579,7 +520,7 @@
                 
                 function addCheckbox(value, text) {
                     const checked = exportColumns.includes(value) ? "checked" : "";
-                    checkboxDiv.html(checkboxDiv.html() + `<label><input type=checkbox value='${value}' ${checked}>${text}</label><br>`);
+                    checkboxDiv.html(checkboxDiv.html() + `<label><input type=checkbox value='${e(value)}' ${checked}>${e(text)}</label><br>`);
                 }
                 const app = {
                     id: "App Id", 
@@ -602,7 +543,7 @@
                 var exportArgs = localStorage.rockstarExportAppArgs || "";
                 exportPopup.append(`<br><br>Query or Filter&nbsp;&nbsp;` +
                     `<a href='https://developer.okta.com/docs/reference/api/apps/#list-applications' target='_blank' rel='noopener'>Help</a><br>` +
-                    `<input id=exportargs list=parlist value='${exportArgs}' style='width: 300px'><br><br>` + 
+                    `<input id=exportargs list=parlist value='${e(exportArgs)}' style='width: 300px'><br><br>` + 
                     `<div id=error>&nbsp;</div><br>` +
                     `<datalist id=parlist><option>q=amazon_aws<option>filter=status eq "ACTIVE"<option>filter=status eq "INACTIVE"</datalist>`);
                 createDivA("Export", exportPopup, function () {
@@ -650,13 +591,13 @@
                         mapping.target.id, mapping.target.name, mapping.target.type));
             });
         } else if (appId = getAppId()) {
+            const atos = a => a ? a.join(";") : "";
             createDivA("Export App Users", mainPopup, function () {
-                startExport("App Users", `/api/v1/apps/${appId}/users`, "id,userName,scope,externalId,firstName,lastName,syncState", 
+                startExport("App Users", `/api/v1/apps/${appId}/users?limit=500`, "id,userName,scope,externalId,firstName,lastName,syncState,salesforceGroups,samlRoles", 
                     appUser => toCSV(appUser.id, appUser.credentials ? appUser.credentials.userName : "", appUser.scope, appUser.externalId, 
-                        appUser.profile.firstName, appUser.profile.lastName, appUser.syncState));
+                        appUser.profile.firstName, appUser.profile.lastName, appUser.syncState, atos(appUser.profile.salesforceGroups), atos(appUser.profile.samlRoles)));
             });
             createDivA("Export App Groups", mainPopup, function () {
-                const atos = a => a ? a.join(";") : "";
                 startExport("App Groups", `/api/v1/apps/${appId}/groups?expand=group`, 
                     "id,name,licenses,roles,role,salesforceGroups,featureLicenses,publicGroups", 
                     appGroup => toCSV(appGroup.id, appGroup._embedded.group.profile.name, atos(appGroup.profile.licenses), 
@@ -668,6 +609,7 @@
                 startExport("Group Members", `/api/v1/groups/${groupId}/users`, "id,login,firstName,lastName,status", 
                     user => toCSV(user.id, user.profile.login, user.profile.firstName, user.profile.lastName, user.status));
             });
+            createDivA("Export Group Members (custom)", mainPopup, () => exportUsers('Group Members', `/api/v1/groups/${groupId}/users`, false));
         // TODO: what to do here?
         // } else {
         //     exportPopup = createPopup("Export");
@@ -678,6 +620,106 @@
         //         "<a href='/admin/apps/active'>Applications > Applications</a> and click on an App<br>" +
         //         "<a href='/admin/apps/active'>Applications > Applications</a> to export Apps<br>" +
         //         "<a href='/admin/access/networks'>Security > Networks</a><br>");
+        }
+        function exportUsers(o, url, filter) {
+            exportPopup = createPopup("Export " + o);
+            exportPopup.append("<br>Columns to export");
+            var checkboxDiv = $("<div style='overflow-y: scroll; height: 152px; width: 300px; border: 1px solid #ccc;'></div>").appendTo(exportPopup);
+            
+            function addCheckbox(value, text) {
+                const checked = exportColumns.includes(value) ? "checked" : "";
+                checkboxDiv.html(checkboxDiv.html() + `<label><input type=checkbox value='${e(value)}' ${checked}>${e(text)}</label><br>`);
+            }
+            const user = {
+                id: "User Id", 
+                status: "Status", 
+                created: "Created Date", 
+                activated: "Activated Date", 
+                statusChanged: "Status Changed Date", 
+                lastLogin: "Last Login Date", 
+                lastUpdated: "Last Updated Date", 
+                passwordChanged: "Password Changed Date", 
+                transitioningToStatus: "Transitioning to Status", 
+                "credentials.provider.type": "Credential Provider Type",
+                "credentials.provider.name": "Credential Provider Name"
+            };
+            const defaultColumns = "id,status,profile.login,profile.firstName,profile.lastName,profile.email";
+            const exportColumns = (localStorage.rockstarExportUserColumns || defaultColumns).replace(/ /g, "").split(",");
+            for (const p in user) addCheckbox(p, user[p]);
+            getJSON("/api/v1/meta/schemas/user/default").then(schema => {
+                const base = schema.definitions.base.properties;
+                const custom = schema.definitions.custom.properties;
+                for (const p in base) addCheckbox("profile." + p, base[p].title);
+                for (const p in custom) addCheckbox("profile." + p, custom[p].title);
+            }).fail(() => {
+                const profile = {
+                    login: "Username",
+                    firstName: "First name",
+                    lastName: "Last name",
+                    middleName: "Middle name",
+                    honorificPrefix: "Honorific prefix",
+                    honorificSuffix: "Honorific suffix",
+                    email: "Primary email",
+                    title: "Title",
+                    displayName: "Display name",
+                    nickName: "Nickname",
+                    profileUrl: "Profile Url",
+                    secondEmail: "Secondary email",
+                    mobilePhone: "Mobile phone",
+                    primaryPhone: "Primary phone",
+                    streetAddress: "Street address",
+                    city: "City",
+                    state: "State",
+                    zipCode: "Zip code",
+                    countryCode: "Country code",
+                    postalAddress: "Postal Address",
+                    preferredLanguage: "Preferred language",
+                    locale: "Locale",
+                    timezone: "Time zone",
+                    userType: "User type",
+                    employeeNumber: "Employee number",
+                    costCenter: "Cost center",
+                    organization: "Organization",
+                    division: "Division",
+                    department: "Department",
+                    managerId: "Manager Id",
+                    manager: "Manager"
+                };
+                // TODO: since user can't see /schemas, let them know they can only use base attrs.
+                for (const p in profile) addCheckbox("profile." + p, profile[p]);
+            });
+
+            if (filter) {
+                var exportArgs = localStorage.rockstarExportUserArgs || "";
+                exportPopup.append(`<br><br>Query, Filter, or Search&nbsp;&nbsp;` +
+                    `<a href='https://developer.okta.com/docs/reference/api/users/#list-users' target='_blank' rel='noopener'>Help</a><br>` +
+                    `<input id=exportargs list=parlist value='${e(exportArgs)}' style='width: 300px'>` + 
+                    `<datalist id=parlist><option>q=Smith<option>filter=status eq "DEPROVISIONED"<option>filter=profile.lastName eq "Smith"` +
+                    `<option>search=status eq "DEPROVISIONED"<option>search=profile.lastName eq "Smith"</datalist>`);
+            }
+            exportPopup.append(`<br><br><div id=error>&nbsp;</div><br>`);
+            createDivA("Export", exportPopup, function () {
+                var exportHeaders = [];
+                var exportColumns = [];
+                checkboxDiv.find("input:checked").each(function () {
+                    exportHeaders.push(this.parentNode.textContent);
+                    exportColumns.push(this.value);
+                });
+                if (exportHeaders.length) {
+                    $("#error").html("&nbsp;");
+                    exportHeaders = exportHeaders.join(",");
+                    localStorage.rockstarExportUserColumns = exportColumns.join(",");
+                    if (filter) {
+                        exportArgs = $("#exportargs").val();
+                        if (exportArgs.startsWith("?")) exportArgs = exportArgs.substring(1);
+                        localStorage.rockstarExportUserArgs = exportArgs;
+                        url = url + '?' + exportArgs
+                    }
+                    startExport(o, url, exportHeaders, user => toCSV(...fields(user, exportColumns)));
+                } else {
+                    $("#error").html("Select at least 1 column.");
+                }
+            }, "class='link-button'");
         }
         function startExport(title, url, headerRow, templateCallback) {
             total = 0;
@@ -691,14 +733,15 @@
             getJSON(url).then(getObjects).fail(failObjects);
         }
         function getObjects(objects, status, jqXHR) {
-            objects.forEach(object => {
+            for (var i = 0; i < objects.length; i++) {
+                var object = objects[i];
                 var line = template(object);
                 if (line.then) {
                     line.then(ln => lines.push(ln));
                 } else {
                     lines.push(line);
                 }
-            });
+            }
             total += objects.length;
             exportPopup.html(total + " " + objectType + "...<br><br>");
             createDivA("Cancel", exportPopup, () => cancel = true, "class='link-button'");
@@ -746,7 +789,7 @@
             }
         }
         function failObjects(jqXHR) {
-            exportPopup.html("<br>Error: " + jqXHR.responseJSON.errorSummary);
+            exportPopup.html("<br>Error: " + e(jqXHR.responseJSON.errorSummary));
         }
         function fields(o, fields) {
             var a = [];
@@ -754,14 +797,6 @@
                 a.push(dot(o, fields[f]));
             }
             return a;
-        }
-        function dot(o, dots) {
-            var ps = dots.split(".");
-            for (var p in ps) {
-                o = o[ps[p]];
-                if (o == null) break;
-            }
-            return o;
         }
         function getAppId() {
             var path = location.pathname;
@@ -785,7 +820,16 @@
             var ssoPopup;
             var label = "Show SSO";
             var labels = document.getElementsByClassName("app-button-name");
-            if (labels.length > 0) { // Button labels on Okta homepage
+            // if (labels.length == 0) { // New homepage
+            //     labels = document.getElementsByClassName('chiclet--app-title');
+            //     if (labels.length == 0) return;
+            //     $('.chiclet--action').click(() => {
+            //         setTimeout(() => {
+            //             $('<div>Show SSO</div>').appendTo('.app-settings--launch-app').click(console.log);
+            //         }, 1000);
+            //     })
+            // } else 
+            if (labels.length > 0) { // Button labels on old Okta homepage
                 for (var i = 0; i < labels.length; i++) {
                     if (!labels[i].innerHTML.match(label)) {
                         var a = document.createElement("a");
@@ -864,7 +908,12 @@
             }
         });
         getJSON(`/api/v1/sessions/me`).then(session => {
-            $(".icon-clock-light").parent().append("<div>Expires in " + Math.round((new Date(session.expiresAt) - new Date()) / 60 / 1000) + " minutes</div>");
+            const msg = "Expires in " + Math.round((new Date(session.expiresAt) - new Date()) / 60 / 1000) + " minutes";
+            if ($(".icon-clock-light").length == 1) { // Old homepage
+                $(".icon-clock-light").parent().append("<div>" + msg + "</div>");
+            } else {
+                setTimeout(() => $(".support-text[data-se='last-login-time']").attr('title', msg), 1000);
+            }
         });
         apiExplorer();
     }
@@ -881,8 +930,8 @@
             url.focus();
             var datalist = form.appendChild(document.createElement("datalist"));
             datalist.id = "apilist";
-            const apis = "apps,apps/${appId},authorizationServers,eventHooks,features,groups,groups/${groupId},groups/${groupId}/roles,groups/rules,idps,inlineHooks,meta/schemas/user/linkedObjects,logs,mappings," + 
-                "policies?type=${type},meta/schemas/user,sessions/me,templates/sms,trustedOrigins,meta/types/user,users,users/me,users/${userId},users/${userId}/factors,users/${userId}/roles,zones";
+            const apis = "apps,apps/${appId},apps/${appId}/users,authorizationServers,eventHooks,features,groups,groups/${groupId},groups/${groupId}/roles,groups/${groupId}/users,groups/rules,idps,inlineHooks,logs,mappings,policies?type=${type}," + 
+                "meta/schemas/user,meta/schemas/user/linkedObjects,meta/types/user,sessions/me,templates/sms,trustedOrigins,users,users/me,users/${userId},users/${userId}/factors,users/${userId}/roles,zones";
             datalist.innerHTML = apis.split(',').map(api => `<option>/api/v1/${api}`).join("") + "<option>/oauth2/v1/clients";
             var send = form.appendChild(document.createElement("input"));
             send.type = "submit";
@@ -913,7 +962,7 @@
                     $(results).append("Status: " + jqXHR.status + " " + jqXHR.statusText + "<br>");
                     if (objects) {
                         var pathname = url.split('?')[0];
-                        var json = formatPre(linkify(JSON.stringify(objects, null, 4)), pathname); // Pretty Print the JSON.
+                        var json = formatPre(linkify(e(JSON.stringify(objects, null, 4))), pathname); // Pretty Print the JSON.
                         if (Array.isArray(objects)) {
                             var table = formatObjects(objects, pathname);
                             $(results).append(table.header);
@@ -927,7 +976,7 @@
                         }
                         $(results).append(json);
                     }
-                }).fail(jqXHR => $(results).html("<br>Status: " + jqXHR.status + " " + jqXHR.statusText + "<br><br>Error:<pre>" + JSON.stringify(jqXHR.responseJSON, null, 4) + "</pre>"));
+                }).fail(jqXHR => $(results).html("<br>Status: " + jqXHR.status + " " + jqXHR.statusText + "<br><br>Error:<pre>" + e(JSON.stringify(jqXHR.responseJSON, null, 4)) + "</pre>"));
                 return false; // Cancel form submit.
             };
         });
@@ -935,7 +984,7 @@
     function formatJSON() {
         let pre = document.getElementsByTagName("pre")[0]; // Don't use jQuery.
         let objects = JSON.parse(pre.innerHTML);
-        let json = linkify(JSON.stringify(objects, null, 4)); // Pretty Print the JSON.
+        let json = linkify(e(JSON.stringify(objects, null, 4))); // Pretty Print the JSON.
         if (objects.errorCode == "E0000005") json = "Are you signed in? <a href=/>Sign in</a>\n\n" + json;
         if (Array.isArray(objects)) {
             document.head.innerHTML = "<style>body {font-family: Arial;} table {border-collapse: collapse;} tr:hover {background-color: #f9f9f9;} " +
@@ -947,25 +996,40 @@
         }
     }
     function formatObjects(objects, url) {
-        let len = "(length: " + objects.length + ")\n\n";
-        let rows = [];
-        let ths = [];
-        objects.forEach(row => {
-            for (let p in row) {
-                if (!ths.includes(p)) ths.push(p);
+        function addTh(o, n) {
+            for (const p in o) {
+                if (p == '_links') continue;
+                const v = n ? n + '.' + p : p;
+                if (typeof o[p] == 'object' && !Array.isArray(o[p]) && o[p] !== null) {
+                    addTh(o[p], v);
+                } else if (!ths.includes(v)) {
+                    ths.push(v);
+                }
             }
-        });
+        }
+        const ths = [];
+        objects.forEach(o => addTh(o, '')); // DON'T DO: forEach(addTh), cuz forEach will send addTh extra arrghs!
+        // ths.sort(); // (t1, t2) => t1.startsWith('_links') ? 1 : t2.startsWith('_links') ? -1 : t1.localeCompare(t2));
+        const rows = [];
         objects.forEach(row => {
-            let tds = [];
-            for (let p of ths) {
-                if (row[p] === undefined) row[p] = "";
-                if (p == "id") row[p] = "<a href='" + url + "/" + row[p] + "'>" + row[p] + "</a>";
-                tds.push("<td>" + (typeof row[p] == "object" ? "<pre>" + JSON.stringify(row[p], null, 4) + "</pre>" : row[p]));
+            const tds = [];
+            for (const p of ths) {
+                var v = p.includes('.') ? dot(row, p) : row[p];
+                if (v === undefined) v = "";
+                if (p == "id") {
+                    v = "<a href='" + url + "/" + v + "'>" + e(v) + "</a>";
+                } else if (typeof v == "object") {
+                    v = "<pre>" + e(JSON.stringify(v, null, 4)) + "</pre>";
+                } else {
+                    v = e(v);
+                }
+                tds.push("<td>" + v);
             }
             rows.push("<tr>" + tds.join(""));
         });
+        const len = "(length: " + objects.length + ")\n\n";
         return {header: "<span id=table><b>Table</b> <a href=#json>JSON</a><br><br>" + len + "</span>",
-            body: "<br><table class='data-list-table' style='border: 1px solid #ddd;'><tr><th>" + ths.join("<th>") + linkify(rows.join("")) + "</table><br>" +
+            body: "<br><table class='data-list-table' style='border: 1px solid #ddd; white-space: nowrap;'><tr><th>" + ths.join("<th>") + linkify(rows.join("")) + "</table><br>" +
                 "<div id=json><a href=#table>Table</a> <b>JSON</b></div><br>" + len};
     }
     function formatPre(s, url) {
@@ -1129,4 +1193,29 @@
         a.attr("download", `${filename} ${date}.csv`);
         a[0].click();
     }
+    function e(s) {
+        return s.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function dot(o, dots) {
+        var ps = dots.split(".");
+        for (var p in ps) {
+            o = o[ps[p]];
+            if (o == null) break;
+        }
+        return o;
+    }
+
+    // Listen to message from background.js.
+    if (window.chrome && chrome.runtime.onMessage) chrome.runtime.onMessage.addListener(function (request, _, sendResponse) {
+        getJSON("/api/v1/groups").then(groups => {
+            groups = groups
+                .filter(group => group.profile.name.match(new RegExp(request.group, "i")))
+                .map(group => ({
+                    content: location.origin + "/admin/group/" + group.id, 
+                    description: e(group.profile.name) + (group.profile.description ? ` <dim>(${group.profile.description})</dim>` : '')
+                }));
+            sendResponse({groups});
+        });
+        return true; // Indicates that sendResponse will be called asynchronously.
+    });
 })();
