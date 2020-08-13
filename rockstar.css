@@ -1,3 +1,4 @@
+/*
 .popup {
     position: absolute; 
     z-index: 1000; 
@@ -6,4 +7,21 @@
     background-color: white; 
     padding: 8px; 
     border: 1px solid #ddd;
+} 
+*/
+.title {
+    font-weight: bold;
+}
+.title:hover {
+    background-color: #e8e8e8;
+}
+.rs_closed {
+    display: none;
+}
+.hoverDiv {
+    cursor: pointer;
+    padding: 5px;
+}
+.hoverDiv:hover {
+    background-color: #f0f0f0;
 }
