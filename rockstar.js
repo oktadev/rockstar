@@ -41,6 +41,14 @@
 
         $("<li><a href='/admin/apps/add-app'>Integration Network</a>").appendTo("#nav-admin-apps-2");
         $("<li><a href='/admin/access/api/tokens'>API Tokens</a>").appendTo("#nav-admin-access-2");
+        var count = 0;
+        const intervalID = setInterval(() => { // new admin
+            if (count++ == 25) clearInterval(intervalID);
+            if (!document.querySelector('[data-se=o-side-nav-item-APPLICATIONS] ul')) return;
+            $("<li><a class='nav-item--wrapper' href='/admin/apps/add-app'><p class='nav-item--label'>Integration Network</p></a>").appendTo('[data-se=o-side-nav-item-APPLICATIONS] ul');
+            $("<li><a class='nav-item--wrapper' href='/admin/access/api/tokens'><p class='nav-item--label'>API Tokens</p></a>").appendTo('[data-se=o-side-nav-item-SECURITY] ul');
+            clearInterval(intervalID);
+        }, 200);        
         exportObjects();
         //createPrefixA("<li>", "Export Objects", "#nav-admin-reports-2", exportObjects);
         apiExplorer();
@@ -53,7 +61,7 @@
     }
 
     function quickUpdate() {
-        $(`<a href='https://www.youtube.com/watch?v=2fkT6Trhizs' target='_blank' rel='noopener'>New Omnibox Integration (youtube)</a><br><br>`).appendTo(mainPopup);
+        $(`<a href='https://www.youtube.com/watch?v=mNTThKVjztc&list=PLZ4_Rj_Aw2Ym-NkC8SFB6wuSfBiBto_6C' target='_blank' rel='noopener'>rockstar overview (youtube)</a><br><br>`).appendTo(mainPopup);
     }
 
     // Admin functions
@@ -125,6 +133,9 @@
 
         createDiv("Verify Factors", mainPopup, async function () {
             function mapFactors(factor) {
+                // Duo probably won't work, it seems to need a UI/SDK/etc.
+                // WebAuthn probably won't work, either, since the user and browser have to be the same.
+                // Same is probably true for at least some of the factors not listed below.
                 const supportedFactors = [
                     {provider: 'OKTA', type: 'push', icon: "okta-otp", name: "Okta Verify with Push", sort: 0},
                     {provider: 'OKTA', type: "token:software:totp", icon: "okta-otp", name: "Okta Verify (OTP)", sort: 1},
@@ -288,6 +299,7 @@
             var form = $("<form>Name <input class=name style='width: 300px'> " + 
                 "<input type=submit value=Search></form><br><div class=results></div>").appendTo(popup);
             form.submit(event => {
+                popup.find("div.results").html("Loading...");
                 getJSON("/api/v1/groups").then(groups => {
                     groups = groups
                         .filter(group => group.profile.name.match(new RegExp(form.find("input.name").val(), "i")))
@@ -311,7 +323,7 @@
                 limit: 10000,
                 comparer: (group1, group2) => group1.profile.name.localeCompare(group2.profile.name),
                 template(group) {
-                    const logo = group._links.logo[0].href.split('/')[7].split('-')[0];
+                    const logo = group._links.logo[0].href.split('/')[7].split('-')[0].replace(/odyssey/, 'okta');
                     return `<tr><td class=column-width><span class='icon icon-24 group-logos-24 logo-${logo}'></span>` +
                         `<td><a href="/admin/group/${group.id}">${e(group.profile.name)}</a>` +
                         `<td>${e(group.profile.description || "No description")}` + 
@@ -497,10 +509,11 @@
             });
         } else if (location.pathname == "/admin/apps/active") {
             createDiv("Export Apps", mainPopup, function () {
-                startExport("Apps", "/api/v1/apps", "id,label,name,userNameTemplate,features,signOnMode,status", 
-                    app => toCSV(app.id, app.label, app.name, app.credentials.userNameTemplate.template, app.features.join(', '), app.signOnMode, app.status));
+                startExport("Apps", "/api/v1/apps", "id,label,name,userNameTemplate,features,signOnMode,status,embedLinks", 
+                    app => toCSV(app.id, app.label, app.name, app.credentials.userNameTemplate.template, app.features.join(', '), app.signOnMode, app.status,
+                        app._links.appLinks.map(a => a.href).join(', ')));
             });
-            createDiv("Export App Notes", mainPopup, function () {
+            createDiv("Export App Notes (experimental)", mainPopup, function () {
                 startExport("App Notes", "/api/v1/apps", "id,label,name,userNameTemplate,features,signOnMode,status,endUserAppNotes,adminAppNotes", async app => {
                     var response = await fetch(`/admin/app/${app.name}/instance/${app.id}/settings/general`);
                     var html = await response.text();
@@ -511,7 +524,7 @@
                     return toCSV(app.id, app.label, app.name, app.credentials.userNameTemplate.template, app.features.join(', '), app.signOnMode, app.status, enduserAppNotes, adminAppNotes);
                 });
             });
-            createDiv("Export App Sign On Policies", mainPopup, function () {
+            createDiv("Export App Sign On Policies (experimental)", mainPopup, function () {
                 startExport("App Sign On Policies", "/api/v1/apps", "id,label,name,userNameTemplate,features,signOnMode,status,policies", async app => {
                     var response = await fetch(`/admin/app/instance/${app.id}/app-sign-on-policy-list`);
                     var html = await response.text();
@@ -543,7 +556,8 @@
                     "credentials.userNameTemplate.template": "Username Template",
                     "settings.app.identityProviderArn": "AWS Identity Provider ARN",
                     "settings.signOn.ssoAcsUrl": "SSO ACS URL",
-                    "settings.app.postBackURL": "Post Back URL"
+                    "settings.app.postBackURL": "Post Back URL",
+                    "_links.embedLinks": "Embed Links"
                 };
                 const defaultColumns = "id,label,name,credentials.userNameTemplate.template,features,signOnMode,status";
                 const exportColumns = (localStorage.rockstarExportAppColumns || defaultColumns).replace(/ /g, "").split(",");
@@ -568,7 +582,10 @@
                         exportHeaders = exportHeaders.join(",");
                         localStorage.rockstarExportAppColumns = exportColumns.join(",");
                         localStorage.rockstarExportAppArgs = exportArgs;
-                        startExport("Apps", `/api/v1/apps?${exportArgs}`, exportHeaders, app => toCSV(...fields(app, exportColumns)));
+                        startExport("Apps", `/api/v1/apps?${exportArgs}`, exportHeaders, app => {
+                            app._links.embedLinks = app._links.appLinks.map(a => a.href).join(', ');
+                            return toCSV(...fields(app, exportColumns));
+                        });
                     } else {
                         $("#error").html("Select at least 1 column.");
                     }
@@ -588,14 +605,13 @@
             });
         } else if (location.pathname == "/reports/user/yubikey") {
             createDiv("Export YubiKeys", mainPopup, function () {
-                startExport("YubiKeys", "/api/v1/org/factors/yubikey_token/tokens?expand=user", "serial,status,id,firstName,lastName,login", 
-                    token => toCSV(token.profile.serial, token.status, token._embedded && token._embedded.user.id, 
-                        token._embedded && token._embedded.user.profile.firstName, token._embedded && token._embedded.user.profile.lastName, 
-                        token._embedded && token._embedded.user.profile.login), 'user');
+                startExport("YubiKeys", "/api/v1/org/factors/yubikey_token/tokens?expand=user", "keyId,serial,status,userId,firstName,lastName,login", 
+                    token => toCSV(token.id, token.profile.serial, token.status, token._embedded?.user.id, token._embedded?.user.profile.firstName, 
+                        token._embedded?.user.profile.lastName, token._embedded?.user.profile.login), 'user');
             });
         } else if (location.pathname == "/admin/universaldirectory") {
             createDiv("Export Mappings", mainPopup, function () {
-                startExport("Mappings", "/api/v1/mappings", "id,sourceId,sourceName,soureceType,targetId,targetName,targetType", 
+                startExport("Mappings", "/api/v1/mappings", "id,sourceId,sourceName,sourceType,targetId,targetName,targetType", 
                     mapping => toCSV(mapping.id, mapping.source.id, mapping.source.name, mapping.source.type, 
                         mapping.target.id, mapping.target.name, mapping.target.type));
             });
@@ -645,15 +661,17 @@
                 checkboxDiv.html(checkboxDiv.html() + `<label><input type=checkbox value='${e(value)}' ${checked}>${e(text)}</label><br>`);
             }
             const user = {
-                id: "User Id", 
-                status: "Status", 
-                created: "Created Date", 
-                activated: "Activated Date", 
-                statusChanged: "Status Changed Date", 
-                lastLogin: "Last Login Date", 
-                lastUpdated: "Last Updated Date", 
-                passwordChanged: "Password Changed Date", 
-                transitioningToStatus: "Transitioning to Status", 
+                id: "User Id",
+                status: "Status",
+                created: "Created Date",
+                activated: "Activated Date",
+                statusChanged: "Status Changed Date",
+                lastLogin: "Last Login Date",
+                lastUpdated: "Last Updated Date",
+                passwordChanged: "Password Changed Date",
+                transitioningToStatus: "Transitioning to Status",
+                'type.id': 'User Type ID',
+                'credentials.recovery_question.question': 'Credential Recovery Question',
                 "credentials.provider.type": "Credential Provider Type",
                 "credentials.provider.name": "Credential Provider Name"
             };
@@ -706,7 +724,7 @@
             if (filter) {
                 var exportArgs = localStorage.rockstarExportUserArgs || "";
                 exportPopup.append(
-                    `<br><br>Query, Filter, or Search&nbsp;&nbsp;` +
+                    `<form><br><br>Query, Filter, or Search&nbsp;&nbsp;` +
                     `<a href='https://developer.okta.com/docs/reference/api/users/#list-users' target='_blank' rel='noopener'>Help</a><br>` +
                     `<input id=exportargs list=parlist value='${e(exportArgs)}' style='width: 500px'>` + 
                     `<datalist id=parlist><option>q=Smith<option>filter=status eq "DEPROVISIONED"<option>filter=profile.lastName eq "Smith"` +
@@ -716,7 +734,7 @@
                     `Query lists up 10 users; query by first name, last name or email.<br><br>` + 
                     `Filter lists all users; filter by status, last updated, id, login, email, first name or last name.<br><br>` +
                     `Search lists all users; search by any user profile property, including custom-defined<br>` +
-                    `properties, and id, status, created, activated, status changed and last updated.`);
+                    `properties, and id, status, created, activated, status changed and last updated.</form>`);
             }
             exportPopup.append(`<br><br><div id=error>&nbsp;</div><br>`);
             createDivA("Export", exportPopup, function () {
@@ -733,7 +751,7 @@
                     var localUrl = url; // Don't modify url!
                     if (filter) {
                         exportArgs = $("#exportargs").val();
-                        if (exportArgs.startsWith("?")) exportArgs = exportArgs.substring(1);
+                        if (exportArgs.startsWith("?")) exportArgs = exportArgs.slice(1);
                         localStorage.rockstarExportUserArgs = exportArgs;
                         localUrl += '?' + exportArgs;
                     }
@@ -1014,9 +1032,9 @@
             url.focus();
             var datalist = form.appendChild(document.createElement("datalist"));
             datalist.id = "urls";
-            const paths = 'apps,apps/${appId},apps/${appId}/users,apps?filter=user.id eq "${userId}",authorizationServers,eventHooks,features,' + 
+            const paths = 'apps,apps/${appId},apps/${appId}/groups,apps/${appId}/users,apps?filter=user.id eq "${userId}",authorizationServers,eventHooks,features,' + 
                 'groups,groups/${groupId},groups/${groupId}/roles,groups/${groupId}/users,groups/rules,idps,inlineHooks,logs,mappings,policies?type=${type},' + 
-                'meta/schemas/user/default,meta/schemas/user/linkedObjects,meta/types/user,sessions/me,templates/sms,trustedOrigins,' + 
+                'meta/schemas/apps/${instanceId}/default,meta/schemas/user/default,meta/schemas/user/linkedObjects,meta/types/user,sessions/me,templates/sms,trustedOrigins,' + 
                 'users,users/me,users/${userId},users/${userId}/appLinks,users/${userId}/factors,users/${userId}/groups,users/${userId}/roles,zones';
             datalist.innerHTML = paths.split(',').map(path => `<option>/api/v1/${path}`).join("") + "<option>/oauth2/v1/clients";
             var send = form.appendChild(document.createElement("input"));
@@ -1047,19 +1065,21 @@
                     }
                     $(results).append("Status: " + jqXHR.status + " " + jqXHR.statusText + "<br>");
                     if (objects) {
-                        var pathname = url.split('?')[0];
-                        var json = formatPre(linkify(e(JSON.stringify(objects, null, 4))), pathname); // Pretty Print the JSON.
+                        const pathname = url.split('?')[0];
+                        var addId = false;
                         if (Array.isArray(objects)) {
                             var table = formatObjects(objects, pathname);
+                            addId = true;
                             $(results).append(table.header);
-                            if (nextUrl) {
+                            if (nextUrl) { // This is part of the header.
                                 createA("Next >", results, () => {
                                     form.url.value = nextUrl;
                                     send.click();
                                 });
                             }
-                            json = "<br>" + table.body + json;
+                            $(results).append("<br>" + table.body);
                         }
+                        const json = formatPre(linkify(e(JSON.stringify(objects, null, 4))), pathname, addId); // Pretty Print the JSON.
                         $(results).append(json);
                     }
                 }).fail(jqXHR => $(results).html("<br>Status: " + jqXHR.status + " " + jqXHR.statusText + "<br><br>Error:<pre>" + e(JSON.stringify(jqXHR.responseJSON, null, 4)) + "</pre>"));
@@ -1076,7 +1096,7 @@
             document.head.innerHTML = "<style>body {font-family: Arial;} table {border-collapse: collapse;} tr:hover {background-color: #f9f9f9;} " +
                 "td,th {border: 1px solid silver; padding: 4px;} th {background-color: #f2f2f2; text-align: left;}</style>";
             var table = formatObjects(objects, location.pathname);
-            document.body.innerHTML = table.header + table.body + formatPre(json, location.pathname);
+            document.body.innerHTML = table.header + table.body + formatPre(json, location.pathname, true);
         } else {
             pre.innerHTML = json;
         }
@@ -1118,11 +1138,11 @@
             body: "<br><table class='data-list-table' style='border: 1px solid #ddd; white-space: nowrap;'><tr><th>" + ths.join("<th>") + linkify(rows.join("")) + "</table><br>" +
                 "<div id=json><a href=#table>Table</a> <b>JSON</b></div><br>" + len};
     }
-    function formatPre(s, url) {
-        return "<pre>" + s.replace(/"id": "(.*)"/g, '"id": "<a href="' + url + '/$1">$1</a>"') + "</pre>";
+    function formatPre(s, url, addId) {
+        return "<pre>" + s.replace(/"id": "(.*)"/g, (match, id) => id.startsWith('<') ? match : `"id": "<a href="${url}${addId ? '/' + id: ''}">${id}</a>"`) + "</pre>";
     }
     function linkify(s) {
-        return s.replace(/"(https.*)"/g, '"<a href="$1">$1</a>"');
+        return s.replace(/"(https?.*)"/g, '"<a href="$1">$1</a>"');
     }
     /*
     // This doesn't seem to work since the new dev site went up.
@@ -1232,7 +1252,7 @@
                 settings.dataType = "text";
                 $.get(settings).then(text => {
                     const prefix = "while(1){};";
-                    var json = text.substr(prefix.length); // text has a prefix to prevent JSON hijacking. We have to remove the prefix.
+                    var json = text.slice(prefix.length); // text has a prefix to prevent JSON hijacking. We have to remove the prefix.
                     var data = JSON.parse(json);
                     var properties = data[object.properties].properties;
                     var objects = [];
@@ -1293,7 +1313,7 @@
         popup.html(html + "Done.");
         var a = $("<a>").appendTo(popup);
         a.attr("href", URL.createObjectURL(new Blob([header + "\n" + lines.join("\n")], {type: 'text/csv'})));
-        var date = (new Date()).toISOString().replace(/T/, " ").replace(/:/g, "-").substr(0, 19);
+        var date = (new Date()).toISOString().replace(/T/, " ").replace(/:/g, "-").slice(0, 19);
         a.attr("download", `${filename} ${date}.csv`);
         a[0].click();
     }

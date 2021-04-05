@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "rockstar",
-  "version": "0.11",
-  "description": "Enhance Okta with a bunch of great features, like exporting to a CSV.",
+  "version": "0.17",
+  "description": "rockstar adds a bunch of great features to Okta, like exporting to a CSV.",
   "omnibox": {
     "keyword": "rs"
   },
