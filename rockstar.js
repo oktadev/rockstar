@@ -1188,13 +1188,15 @@
         function toggleSide() {
             popup.toggleClass('rs_toggle');
         }
-        const popup = $(`<div style='position: absolute; z-index: 1000; top: 0px; max-height: calc(100% - 28px); max-width: calc(100% - 28px); padding: 8px; margin: 4px; overflow: auto; ` +
+
+        const popup = $(`<div id="rockstartPopup" class="hidden" style='position: absolute; z-index: 1000; top: 0px; max-height: calc(100% - 28px); max-width: calc(100% - 28px); padding: 8px; margin: 4px; overflow: auto; ` +
                 `background-color: white; border: 1px solid #ddd;'>` +
                 `${main ? "<span class=title><span style='font-size: 18px;'>≡</span> " : "<span style='font-weight: bold'>"}${title}</span>` +
                 `<div style='display: block; float: right;'>${main ? "<span class=toggleSide style='padding: 4px'> ⇄ </span><span class=minimize style='padding: 4px'> _ </span>" : ""} ` + 
                 `<a href='https://gabrielsroka.github.io/rockstar/' target='_blank' rel='noopener' style='font-size: 18px; padding: 4px'>?</a> ` + 
                 `<a onclick='document.body.removeChild(this.parentNode.parentNode)' style='font-size: 18px; cursor: pointer; padding: 4px'>X</a></div><br><br></div>`)
             .appendTo(document.body);
+        const widgetToggle = $(`<div id="rockstarWidgetToggle" class="widgetButton">`).click(revealPopup).appendTo(document.body);
         const popupBody = $("<div></div>").appendTo(popup);
         if (main) {
             popup.find('.title').click(toggleClosed);
@@ -1210,6 +1212,13 @@
             if (localStorage.rockstarToggleSide) toggleSide();
         }
         return popupBody;
+    }
+    function revealPopup() {
+        var rspopup = document.getElementById('rockstartPopup');
+        var rswidgtoggle = document.getElementById('rockstarWidgetToggle');
+
+        rspopup.classList.remove("hidden");
+        rswidgtoggle.classList.add("hidden");
     }
     function createA(html, parent, clickHandler) {
         createPrefixA("", html, parent, clickHandler);

@@ -28,3 +28,19 @@
 .hoverDiv:hover {
     background-color: #f0f0f0;
 }
+.hidden {
+    display: none;
+}
+.widgetButton {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/rockstar_icon_128.png');
+    background-size: 64px 64px;
+    border-radius: 50%;
+    position: absolute;
+    z-index: 1000;
+    bottom: 80px;
+    height: 64px;
+    width: 64px;
+    border: 2px solid black;
+    margin-left: 20px;
+    cursor: context-menu;
+}

@@ -28,5 +28,6 @@
       "js": ["jquery-1.12.4.min.PATCHED.js", "rockstar.js"],
       "css": ["rockstar.css"]
     }
-  ]
+  ],
+  "web_accessible_resources": ["rockstar_icon_128.png"]
 }
