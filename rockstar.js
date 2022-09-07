@@ -1054,7 +1054,10 @@
                 }
                 requestJSON({url, method: method.value, data: data.value}).then((objects, status, jqXHR) => {
                     $(results).html("<br>");
-                    var linkHeader = jqXHR.getResponseHeader("Link"); // TODO: maybe show X-Rate-Limit-* headers, too.
+                    var linkHeader = jqXHR.getResponseHeader("Link");
+                    var remaining = jqXHR.getResponseHeader("X-Rate-Limit-Remaining");
+                    var limit = jqXHR.getResponseHeader("X-Rate-Limit-Limit")
+                    var humanReadableReset = new Date(jqXHR.getResponseHeader("X-Rate-Limit-Reset")*1000)
                     if (linkHeader) {
                         $(results).html("<br>Headers<br><table><tr><td>Link<td>" + linkHeader.replace(/</g, "&lt;").replace(/, /g, "<br>") + "</table><br>");
                         var links = getLinks(linkHeader);
@@ -1064,6 +1067,9 @@
                         }
                     }
                     $(results).append("Status: " + jqXHR.status + " " + jqXHR.statusText + "<br>");
+                    $(results).append("Rate Limit: " + limit + "<br>");
+                    $(results).append("Rate Limit Remaining: " + remaining + "<br>");
+                    $(results).append("Rate Limit Reset Time: " + humanReadableReset + "<br>");
                     if (objects) {
                         const pathname = url.split('?')[0];
                         var addId = false;
